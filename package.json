@@ -1,0 +1,14 @@
+{
+  "name": "phonehandle",
+  "version": "1.0.0",
+  "description": "a application for handling android phone on PC",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "cpak00",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^2.0.3"
+  }
+}

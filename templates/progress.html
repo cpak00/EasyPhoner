@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- 包含js要在此之前 -->
+    <script>
+        // 避免冲突
+        window.nodeRequire = require;
+        delete window.require;
+        delete window.module;
+        delete window.exports;
+    </script>
+    <script type="text/javascript" src="../static/javascripts/jquery.min.js"></script>
+    <script type="text/javascript" src="../static/javascripts/materialize.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="../static/stylesheets/materialize.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body style="-webkit-app-region: drag;">
+    <div class="progress" id="progress">
+        <div id="signal" class="determinate" style="width: 0%"></div>   
+    </div>
+    <label id="label"></label>
+    <button class="btn" onclick="stop()" style="-webkit-app-region: no-drag;">中断</button>
+    <script>
+        const {
+            ipcRenderer
+        } = nodeRequire('electron');
+        ipcRenderer.on('progress', (event, data)=>{
+            var progress = data.progress;
+            $('#signal').attr('style', `width: ${progress}`);
+
+            var index = data.index;
+            var totalNum = data.total;
+            var currentNum = index + 1;
+            $("#label").text(`${progress} ${currentNum}/${totalNum}`);          
+        })
+        stop = ()=>{
+            ipcRenderer.send('progress-close');
+        }
+    </script>
+</body>
+
+</html>

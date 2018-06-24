@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>简单手机助手</title>
+    <script src="../static/javascripts/util.js"></script>
+    <!-- 包含js要在此之前 -->
+    <script>
+        // 避免冲突
+        window.nodeRequire = require;
+        delete window.require;
+        delete window.module;
+        delete window.exports;
+    </script>
+    <script type="text/javascript" src="../static/javascripts/jquery.min.js"></script>
+    <script type="text/javascript" src="../static/javascripts/materialize.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="../static/stylesheets/materialize.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        .nav-extended {
+            -webkit-app-region: drag
+        }
+
+        a {
+            -webkit-app-region: no-drag;
+        }
+    </style>
+</head>
+
+<body>
+    <!--导航条-->
+    <nav class="nav-extended blue">
+        <div class="nav-wrapper">
+            <a href="#" class="brand-logo left">简单手机助手</a>
+            <ul id="win-button" class="right">
+                <li>
+                    <a href="javascript:closeWin();">
+                        <i class="material-icons tiny">close</i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="nav-content blue">
+            <ul id="app-button" class="tabs tabs-transparent">
+                <li class="tab">
+                    <a href="index.html" target="_self">首页</a>
+                </li>
+                <li class="tab">
+                    <a href="directory.html" target="_self">我的设备</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 首页 -->
+    <div id="index">
+        <div class="row">
+            <!-- 手机 -->
+            <div class="col s4">
+                <div class="card">
+                    <div class="card-image">
+                        <img />
+                    </div>
+                    <div class="card-action">
+
+                    </div>
+                </div>
+                <div class="input-field">
+                    <select id="device_list">
+                        <option value="" disabled selected>请选择设备</option>
+                    </select>
+                </div>
+
+            </div>
+            <!-- 操作 -->
+            <div class="col s8">
+                <div class="row">
+                    <div class="col s3 right">
+                        <button class="btn green" id="usb_connect">usb连接</button>
+                    </div>
+                    <div class="col s3 right">
+                        <button class="btn green" id="wifi_connect">wifi连接</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 我的设备 -->
+</body>
+<script>
+    const {
+        ipcRenderer
+    } = nodeRequire('electron');
+    closeWin = function () {
+        ipcRenderer.send('command', 'close');
+    }
+
+    $(function () {
+        $("select").material_select();
+
+        $("#usb_connect").click(() => {
+            ipcRenderer.send('command', 'get_device');
+            ipcRenderer.on('devices', (event, devices) => {
+                if (devices.length == 0) {
+                    alert("没有找到可用的设备");
+                    return;
+                }
+
+                ipcRenderer.send('connect', devices[0]);
+
+                $("select").material_select('destroy');
+
+                var html =
+                    `
+                    <option value="{0}">{1}</option>
+                `
+                var content = '';
+                for (i in devices) {
+                    device = devices[i];
+                    content += html.format(device, device);
+                }
+
+                $("select").html(content);
+                $("select").material_select();
+            })
+        })
+
+        $("#device_list").change(() => {
+            ipcRenderer.send('connect', $("#device_list").val())
+        })
+    })
+</script>
+
+</html>

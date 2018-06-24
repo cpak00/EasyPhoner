@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>简单手机助手</title>
+    <script src="../static/javascripts/util.js"></script>
+    <!-- 包含js要在此之前 -->
+    <script>
+        // 避免冲突
+        window.nodeRequire = require;
+        delete window.require;
+        delete window.module;
+        delete window.exports;
+    </script>
+    <script type="text/javascript" src="../static/javascripts/jquery.min.js"></script>
+    <script type="text/javascript" src="../static/javascripts/materialize.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="../static/stylesheets/materialize.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        .nav-extended {
+            -webkit-app-region: drag;
+        }
+
+        a {
+            -webkit-app-region: no-drag;
+        }
+
+        ul.horizental>li {
+            display: block;
+            list-style: none;
+            float: left;
+            margin: 40px;
+        }
+
+        p {
+            width: 80px;
+            text-overflow: ellipsis;
+            word-break: break-all;
+        }
+
+        #file_list {
+            height: 380px;
+            overflow-y: scroll;
+        }
+
+        body {
+            overflow-x: hidden;
+            overflow-y: hidden
+        }
+    </style>
+</head>
+
+<body>
+    <!--导航条-->
+    <nav class="nav-extended blue">
+        <div class="nav-wrapper">
+            <a href="#" class="brand-logo left">简单手机助手</a>
+            <ul id="win-button" class="right">
+                <li>
+                    <a href="javascript:closeWin();">
+                        <i class="material-icons tiny">close</i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="nav-content blue">
+            <ul id="app-button" class="tabs tabs-transparent">
+                <li class="tab" id="tab0">
+                    <a href="index.html" target="_self">首页</a>
+                </li>
+                <li class="tab" id="tab1">
+                    <a href="directory.html" target="_self" class="active">我的设备</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 我的设备 -->
+    <div id="myDevice">
+        <div class="row">
+            <div class="col s2">
+                <ul>
+                    <li class="bold">
+                        功能选项
+                    </li>
+                    <li class="bold">
+                        <ul class="collapsible collapsible-accordion">
+                            <li>
+                                <a class="collapsible-header active">
+                                    手机管理
+                                </a>
+                                <div class="collapsible-body">
+                                    <ul>
+                                        <li>
+                                            <a href="application.html">
+                                                应用管理
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="directory.html" class="red-text">
+                                                文件管理
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <!-- 文件管理 -->
+            <div class="col s8 file_area">
+                <div class="row"></div>
+                <div class="row">
+                    <nav>
+                        <div class="nav-wrapper blue">
+                            <div class="col s8" id="file_path">
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+                <div id="file_list" class="row">
+
+                </div>
+            </div>
+            <div class="col s2">
+                <div class="row"></div>
+                <div class="row">
+                    <button class="btn" onclick="uploadFile()">上传文件</button>
+                </div>
+                <div class="row">
+                    <button class="btn" onclick="uploadDir()">上传文件夹</button>
+                </div>
+                <div class="row">
+                    <button class="btn" onclick="downloadFile()">下载文件(夹)</button>
+                </div>
+                <div class="row">
+                    <button class="btn" onclick="deleteFile()">删除文件(夹)</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+<script>
+    const {
+        ipcRenderer
+    } = nodeRequire('electron');
+    const {dialog} = nodeRequire('electron').remote
+    closeWin = function () {
+        ipcRenderer.send('command', 'close');
+    }
+
+    sendURL = (path)=>{
+        console.log(path);
+        ipcRenderer.send('file', path);
+    }
+
+    uploadFile = ()=>{
+        
+        dialog.showOpenDialog({properties: ['openFile', 'multiSelections']}, 
+        (filePaths)=>{
+            console.log(filePaths);
+            ipcRenderer.send('push', filePaths);
+        })
+    }
+
+    uploadDir = ()=>{
+
+        dialog.showOpenDialog({properties: ['openDirectory', 'multiSelections']}, 
+        (dirPaths)=>{
+            console.log(dirPaths);
+            ipcRenderer.send('push', dirPaths);
+        })
+    }
+
+    downloadFile = ()=>{
+        var selected = [];
+        var checkedFile = $("input[class='file_check']:checked");
+        var checkedFolder = $("input[class='folder_check']:checked");
+        
+        checkedFile.each((i, e)=>{
+            selected.push($(e).attr('id'));
+        })
+        checkedFolder.each((i, e)=>{
+            selected.push($(e).attr('id')+'/.');
+        })  
+        console.log(selected);
+
+        dialog.showOpenDialog({properties: ['openDirectory']}, 
+        (dirPath)=>{
+            ipcRenderer.send('pull', selected, dirPath);
+        })
+    }
+
+    deleteFile = ()=>{
+        var selected = [];
+        var checkedFile = $("input[class='file_check']:checked");
+        var checkedFolder = $("input[class='folder_check']:checked");
+        
+        checkedFile.each((i, e)=>{
+            selected.push($(e).attr('id'));
+        })
+        checkedFolder.each((i, e)=>{
+            selected.push($(e).attr('id'));
+        })
+        ipcRenderer.send('remove', selected);
+        ipcRenderer.send('file', '');
+    }
+
+    $(function () {
+        $("select").material_select();
+        $('.collapsible').collapsible();
+
+        $("#usb_connect").click(() => {
+            ipcRenderer.send('command', 'get_device');
+            ipcRenderer.on('devices', (event, devices) => {
+                if (devices.length == 0) {
+                    alert("没有找到可用的设备");
+                    return;
+                }
+
+                ipcRenderer.send('connect', devices[0]);
+
+                $("select").material_select('destroy');
+
+                var html =
+                    `
+                    <option value="{0}">{1}</option>
+                    `
+                var content = '';
+                for (i in devices) {
+                    device = devices[i];
+                    content += html.format(device, device);
+                }
+
+                $("select").html(content);
+                $("select").material_select();
+            })
+        })
+
+        $("#device_list").change(() => {
+            ipcRenderer.send('connect', $("#device_list").val());
+        })
+
+        ipcRenderer.send('file', '');
+        ipcRenderer.on('file_list', (event, file_list) => {
+            var folder =
+                `
+                <li class="bar">
+                    <div class="switch">
+                        <label>
+                            <input type="checkbox" id="{2}" class="folder_check">
+                            <span class="lever"></span>
+                        </label>
+                    </div>
+                    <a class="folder" href="javascript:sendURL('{1}')">
+                        <ul class="vertical input-field">
+                            <li><i class="large material-icons blue-text">folder</i></li>
+                            <li><p>{0}</p></li> 
+                        </ul>
+                    </a>
+                </li>
+                `
+            var file =
+                `
+                <li class="bar">
+                    <div class="switch">
+                        <label>
+                            <input type="checkbox" id="{1}" class="file_check">
+                            <span class="lever"></span>
+                        </label>
+                    </div>
+                    <ul class="vertical">
+                        <li><i class="large material-icons blue-text">insert_drive_file</i></li>
+                        <li><p>{0}</p></li>
+                    </ul>
+                </li>
+                `
+
+            var html =
+                `
+                <ul class="horizental">{0}</ul>
+                `
+            var content = '';
+            for (i in file_list.dir) {
+                content += folder.format(file_list.dir[i], file_list.dir[i], file_list.dir[i])
+            }
+            for (i in file_list.file) {
+                content += file.format(file_list.file[i], file_list.file[i])
+            }
+            $("#file_list").html(html.format(content));
+        })
+        ipcRenderer.on('file_path', (event, file_path)=>{
+            var content = '<a href="#!" class="breadcrumb">/</a>';
+            var bar = `<a href="#!" class="breadcrumb">{0}</a>`;
+            for (i in file_path){
+                content += bar.format(file_path[i]);
+            }
+            $("#file_path").html(content);
+        })
+    })
+</script>
+
+</html>
